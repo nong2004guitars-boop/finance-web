@@ -1,0 +1,72 @@
+from flask import Flask, render_template_string
+from collections import defaultdict
+
+app = Flask(__name__)
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Financial Summary Statement</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; margin: 40px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 650px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 6px; font-size: 15px; line-height: 1.5; overflow-x: auto; }
+        .highlight { color: #4ec9b0; }
+        .income { color: #4fc1ff; }
+        .expense { color: #f44747; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <pre>=============================================
+       FINANCIAL SUMMARY STATEMENT       
+=============================================
+Total Income   : <span class="income">${{ "{:,.2f}".format(total_income) }}</span>
+Total Expenses : <span class="expense">${{ "{:,.2f}".format(total_expense) }}</span>
+Net Balance    : <span class="highlight">${{ "{:,.2f}".format(net_balance) }}</span>
+---------------------------------------------
+
+Expenses Breakdown by Category:
+{% for category, amount in expense_by_category.items() %}
+{% set percentage = (amount / total_expense) * 100 if total_expense > 0 else 0 %} - {{ category.ljust(20) }} : ${{ "{:>7.2f}".format(amount) }} ({{ "{:.1f}".format(percentage) }}%)
+{% endfor %}
+=============================================</pre>
+    </div>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    transactions = [
+        {"date": "2026-09-15 09:00", "type": "Income", "category": "Salary", "amount": 3000.00},
+        {"date": "2026-09-15 12:30", "type": "Expense", "category": "Lunch & Coffee", "amount": 15.50},
+        {"date": "2026-09-16 18:00", "type": "Expense", "category": "Groceries", "amount": 85.20},
+        {"date": "2026-09-18 14:00", "type": "Income", "category": "Freelance Work", "amount": 450.00},
+        {"date": "2026-09-19 20:00", "type": "Expense", "category": "Electricity Bill", "amount": 120.00},
+    ]
+
+    total_income = 0.0
+    total_expense = 0.0
+    expense_by_category = defaultdict(float)
+
+    for item in transactions:
+        amount = item["amount"]
+        if item["type"] == "Income":
+            total_income += amount
+        elif item["type"] == "Expense":
+            total_expense += amount
+            expense_by_category[item["category"]] += amount
+
+    net_balance = total_income - total_expense
+
+    return render_template_string(HTML_TEMPLATE, 
+                                  total_income=total_income,
+                                  total_expense=total_expense,
+                                  net_balance=net_balance,
+                                  expense_by_category=expense_by_category)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
